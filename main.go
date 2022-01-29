@@ -175,5 +175,27 @@ func main() {
 	runInPortDir("make", "clean", "stage", "stage-qa", "check-plist", "package")
 	runInPortDir("make", "clean")
 
-	log.Print("All done")
+	log.Print("Displaying port diff")
+	cmd = exec.Command("git", "--no-pager", "diff", "--color", config.portPath)
+	cmd.Dir = config.portPath
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		panic(err)
+	}
+
+	log.Print("Creating a commit")
+	branch := fmt.Sprintf("omz-%d", remoteInfo.numericDate)
+	runInPortDir("git", "checkout", "-b", branch)
+	runInPortDir("git", "commit", "--message", fmt.Sprintf("shells/ohmyzsh: update to %d", remoteInfo.numericDate), config.portPath)
+
+	log.Print("Re-arranging for merge and push")
+	runInPortDir("git", "checkout", "main")
+	runInPortDir("git", "pull")
+	runInPortDir("git", "checkout", branch)
+	runInPortDir("git", "rebase", "main")
+	runInPortDir("git", "checkout", "main")
+
+	log.Printf("Ready to merge and push. Run `git merge %s && git push`", branch)
 }
